@@ -3,7 +3,7 @@ const ESCAPES: Record<string, string> = {
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
-    "'": '&#39;',
+    "'": '&#39;'
 };
 
 export type LoginFields = Record<string, string | undefined>;
@@ -17,7 +17,7 @@ export function renderLoginPage(fields: LoginFields, error?: string): string {
         .filter((entry): entry is [string, string] => entry[1] !== undefined)
         .map(
             ([name, value]) =>
-                `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}">`,
+                `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}">`
         )
         .join('\n');
 

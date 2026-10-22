@@ -1,9 +1,9 @@
-import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
-import type {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
-import type {z} from 'zod';
-import type {Config} from '../config.js';
-import type {BackgroundProcesses} from '../lib/background.js';
-import type {FileVersions} from '../lib/file-versions.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { z } from 'zod';
+import type { Config } from '../config.js';
+import type { BackgroundProcesses } from '../lib/background.js';
+import type { FileVersions } from '../lib/file-versions.js';
 
 export type ToolContext = Config['tools'] & {
     background: BackgroundProcesses;
@@ -19,7 +19,10 @@ interface ToolDefinition<Shape extends z.ZodRawShape> {
     description: string;
     input: Shape;
     readOnly?: boolean;
-    run(args: z.infer<z.ZodObject<Shape>>, context: ToolContext): Promise<string | CallToolResult>;
+    run(
+        args: z.infer<z.ZodObject<Shape>>,
+        context: ToolContext
+    ): Promise<string | CallToolResult>;
 }
 
 const HEAD_RATIO = 0.6;
@@ -35,24 +38,32 @@ function truncate(text: string, limit: number): string {
 }
 
 function textResult(text: string, limit: number, isError = false): CallToolResult {
-    return {content: [{type: 'text', text: truncate(text, limit)}], ...(isError && {isError})};
+    return {
+        content: [{ type: 'text', text: truncate(text, limit) }],
+        ...(isError && { isError })
+    };
 }
 
-export function defineTool<Shape extends z.ZodRawShape>(definition: ToolDefinition<Shape>): Tool {
+export function defineTool<Shape extends z.ZodRawShape>(
+    definition: ToolDefinition<Shape>
+): Tool {
     return {
         register(server, context) {
-            const handler = async (args: Record<string, unknown>): Promise<CallToolResult> => {
+            const handler = async (
+                args: Record<string, unknown>
+            ): Promise<CallToolResult> => {
                 try {
                     const output = await definition.run(
                         args as z.infer<z.ZodObject<Shape>>,
-                        context,
+                        context
                     );
 
                     return typeof output === 'string'
                         ? textResult(output, context.maxOutputChars)
                         : output;
                 } catch (error) {
-                    const message = error instanceof Error ? error.message : String(error);
+                    const message =
+                        error instanceof Error ? error.message : String(error);
 
                     return textResult(message, context.maxOutputChars, true);
                 }
@@ -65,10 +76,10 @@ export function defineTool<Shape extends z.ZodRawShape>(definition: ToolDefiniti
                 {
                     description: definition.description,
                     inputSchema,
-                    annotations: {readOnlyHint: definition.readOnly ?? false},
+                    annotations: { readOnlyHint: definition.readOnly ?? false }
                 },
-                handler,
+                handler
             );
-        },
+        }
     };
 }

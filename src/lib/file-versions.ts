@@ -1,5 +1,5 @@
-import type {Stats} from 'node:fs';
-import {stat} from 'node:fs/promises';
+import type { Stats } from 'node:fs';
+import { stat } from 'node:fs/promises';
 
 type Version = Pick<Stats, 'mtimeMs' | 'size'>;
 
@@ -19,11 +19,13 @@ export class FileVersions {
         const known = this.versions.get(target);
 
         if (known === undefined)
-            throw new Error(`${target} has not been read yet. Read it with read_file first.`);
+            throw new Error(
+                `${target} has not been read yet. Read it with read_file first.`
+            );
 
         if (known !== current)
             throw new Error(
-                `${target} changed since it was last read. Read it again with read_file.`,
+                `${target} changed since it was last read. Read it again with read_file.`
             );
     }
 }

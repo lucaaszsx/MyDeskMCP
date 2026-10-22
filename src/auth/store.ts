@@ -1,6 +1,6 @@
-import {readFile, rename, writeFile} from 'node:fs/promises';
-import type {OAuthClientInformationFull} from '@modelcontextprotocol/sdk/shared/auth.js';
-import {nowSeconds} from '../lib/time.js';
+import { readFile, rename, writeFile } from 'node:fs/promises';
+import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth.js';
+import { nowSeconds } from '../lib/time.js';
 
 export interface TokenRecord {
     clientId: string;
@@ -19,11 +19,13 @@ interface PersistedState {
     refreshTokens: [string, TokenRecord][];
 }
 
-function isExpired(record: {expiresAt: number}): boolean {
+function isExpired(record: { expiresAt: number }): boolean {
     return record.expiresAt <= nowSeconds();
 }
 
-function dropExpired<Record extends {expiresAt: number}>(records: Map<string, Record>): void {
+function dropExpired<Record extends { expiresAt: number }>(
+    records: Map<string, Record>
+): void {
     for (const [key, record] of records) if (isExpired(record)) records.delete(key);
 }
 
@@ -52,7 +54,7 @@ async function readState(file: string): Promise<Partial<PersistedState>> {
 async function writeAtomically(file: string, data: string): Promise<void> {
     const temporary = `${file}.tmp`;
 
-    await writeFile(temporary, data, {mode: 0o600});
+    await writeFile(temporary, data, { mode: 0o600 });
     await rename(temporary, file);
 }
 
@@ -66,7 +68,7 @@ export class AuthStore {
     private constructor(
         private readonly file: string,
         private readonly maxClients: number,
-        state: Partial<PersistedState>,
+        state: Partial<PersistedState>
     ) {
         this.clients = toMap(state.clients);
         this.accessTokens = toMap(state.accessTokens);
@@ -103,7 +105,8 @@ export class AuthStore {
     findCode(code: string, clientId: string): CodeRecord | undefined {
         const record = this.codes.get(code);
 
-        if (!record || record.clientId !== clientId || isExpired(record)) return undefined;
+        if (!record || record.clientId !== clientId || isExpired(record))
+            return undefined;
 
         return record;
     }
@@ -116,7 +119,10 @@ export class AuthStore {
         return record;
     }
 
-    async saveTokens(access: [string, TokenRecord], refresh: [string, TokenRecord]): Promise<void> {
+    async saveTokens(
+        access: [string, TokenRecord],
+        refresh: [string, TokenRecord]
+    ): Promise<void> {
         this.accessTokens.set(...access);
         this.refreshTokens.set(...refresh);
         await this.persist();
@@ -131,7 +137,8 @@ export class AuthStore {
     takeRefreshToken(hash: string, clientId: string): TokenRecord | undefined {
         const record = this.refreshTokens.get(hash);
 
-        if (!record || record.clientId !== clientId || isExpired(record)) return undefined;
+        if (!record || record.clientId !== clientId || isExpired(record))
+            return undefined;
 
         this.refreshTokens.delete(hash);
 
@@ -149,7 +156,7 @@ export class AuthStore {
         const state: PersistedState = {
             clients: [...this.clients],
             accessTokens: [...this.accessTokens],
-            refreshTokens: [...this.refreshTokens],
+            refreshTokens: [...this.refreshTokens]
         };
         const data = JSON.stringify(state);
 

@@ -1,15 +1,15 @@
-import {glob} from 'node:fs/promises';
-import {z} from 'zod';
-import {resolveDirectory, resolvePath} from '../lib/paths.js';
-import {runCommand} from '../lib/process.js';
-import {defineTool} from './define.js';
+import { glob } from 'node:fs/promises';
+import { z } from 'zod';
+import { resolveDirectory, resolvePath } from '../lib/paths.js';
+import { runCommand } from '../lib/process.js';
+import { defineTool } from './define.js';
 
 const MAX_LINE_COLUMNS = '500';
 
 const MODE_FLAGS = {
     content: ['--line-number', '--no-heading'],
     files: ['--files-with-matches'],
-    count: ['--count'],
+    count: ['--count']
 } as const;
 
 export const searchTools = [
@@ -20,14 +20,14 @@ export const searchTools = [
         readOnly: true,
         input: {
             pattern: z.string().min(1),
-            path: z.string().default('.'),
+            path: z.string().default('.')
         },
-        async run({pattern, path: searchPath}, context) {
+        async run({ pattern, path: searchPath }, context) {
             const directory = await resolveDirectory(searchPath, context.cwd);
             const exclude = context.ignoredDirectories.map((name) => `**/${name}`);
             const matches: string[] = [];
 
-            for await (const entry of glob(pattern, {cwd: directory, exclude})) {
+            for await (const entry of glob(pattern, { cwd: directory, exclude })) {
                 matches.push(entry);
 
                 if (matches.length > context.maxSearchResults) break;
@@ -42,7 +42,7 @@ export const searchTools = [
                     : '';
 
             return shown.join('\n') + notice;
-        },
+        }
     }),
 
     defineTool({
@@ -67,9 +67,12 @@ export const searchTools = [
                 .max(20)
                 .default(0)
                 .describe('Lines of context around each match. Content mode only.'),
-            include: z.string().optional().describe('Only search files matching this glob.'),
+            include: z
+                .string()
+                .optional()
+                .describe('Only search files matching this glob.'),
             offset: z.number().int().min(0).default(0).describe('Output lines to skip.'),
-            max_results: z.number().int().min(1).optional(),
+            max_results: z.number().int().min(1).optional()
         },
         async run(
             {
@@ -82,9 +85,9 @@ export const searchTools = [
                 context_lines: contextLines,
                 include,
                 offset,
-                max_results: maxResults,
+                max_results: maxResults
             },
-            context,
+            context
         ) {
             const args = [
                 '--no-config',
@@ -95,7 +98,7 @@ export const searchTools = [
                 MAX_LINE_COLUMNS,
                 '--max-columns-preview',
                 ...MODE_FLAGS[mode],
-                ...context.ignoredDirectories.flatMap((name) => ['--glob', `!${name}`]),
+                ...context.ignoredDirectories.flatMap((name) => ['--glob', `!${name}`])
             ];
 
             if (!regex) args.push('--fixed-strings');
@@ -114,11 +117,12 @@ export const searchTools = [
             const result = await runCommand('rg', args, {
                 cwd: context.cwd,
                 timeoutMs: context.commandTimeoutMs,
-                env: context.environment,
+                env: context.environment
             });
 
             if (!result.stdout) {
-                if (result.exitCode > 1) throw new Error(result.stderr.trim() || 'rg failed.');
+                if (result.exitCode > 1)
+                    throw new Error(result.stderr.trim() || 'rg failed.');
 
                 return 'No matches found.';
             }
@@ -126,12 +130,14 @@ export const searchTools = [
             const lines = result.stdout.split('\n').filter(Boolean);
             const limit = Math.min(
                 maxResults ?? context.maxSearchResults,
-                context.maxSearchResults,
+                context.maxSearchResults
             );
             const page = lines.slice(offset, offset + limit);
 
             if (page.length === 0)
-                throw new Error(`Offset ${offset} is past the last of ${lines.length} results.`);
+                throw new Error(
+                    `Offset ${offset} is past the last of ${lines.length} results.`
+                );
 
             if (page.length === lines.length) return page.join('\n');
 
@@ -139,6 +145,6 @@ export const searchTools = [
             const more = next < lines.length ? `; continue with offset ${next}` : '';
 
             return `${page.join('\n')}\n[Showing results ${offset + 1}-${next} of ${lines.length}${more}]`;
-        },
-    }),
+        }
+    })
 ];

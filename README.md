@@ -28,7 +28,7 @@ cp .env.example .env
 ```
 
 | Variable | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `MCP_PASSWORD` | required | Login password, at least 16 characters |
 | `MCP_PUBLIC_URL` | required | Public HTTP(S) URL of the tunnel. It becomes the OAuth issuer and the base of `/mcp` |
 | `MCP_HOST` | `127.0.0.1` | Interface to bind |
@@ -68,7 +68,7 @@ To revoke every session, stop the server, delete the state file and start it aga
 ## Tools
 
 | Tool | Description |
-|---|---|
+| --- | --- |
 | `bash` | Run a command in a Bash login shell |
 | `process_start` | Start a command in the background |
 | `process_read` | Read new output of a background process |

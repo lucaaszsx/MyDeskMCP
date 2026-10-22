@@ -1,24 +1,30 @@
-import {requireBearerAuth} from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
-import type {OAuthServerProvider} from '@modelcontextprotocol/sdk/server/auth/provider.js';
+import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
+import type { OAuthServerProvider } from '@modelcontextprotocol/sdk/server/auth/provider.js';
 import {
     getOAuthProtectedResourceMetadataUrl,
-    mcpAuthRouter,
+    mcpAuthRouter
 } from '@modelcontextprotocol/sdk/server/auth/router.js';
-import {StreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import express, {type ErrorRequestHandler, type Express, type RequestHandler} from 'express';
-import type {Config} from './config.js';
-import {createMcpServer} from './mcp.js';
-import type {ToolContext} from './tools/define.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import express, {
+    type ErrorRequestHandler,
+    type Express,
+    type RequestHandler
+} from 'express';
+import type { Config } from './config.js';
+import { createMcpServer } from './mcp.js';
+import type { ToolContext } from './tools/define.js';
 
 export function createApp(
     config: Config,
     provider: OAuthServerProvider,
     context: ToolContext,
-    onError: (error: unknown) => void,
+    onError: (error: unknown) => void
 ): Express {
     const handleMcp: RequestHandler = async (req, res) => {
         const server = createMcpServer(config.server, context);
-        const transport = new StreamableHTTPServerTransport({sessionIdGenerator: undefined});
+        const transport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: undefined
+        });
 
         res.on('close', () => {
             void transport.close();
@@ -36,7 +42,7 @@ export function createApp(
     const handleError: ErrorRequestHandler = (error, _req, res, _next) => {
         onError(error);
 
-        if (!res.headersSent) res.status(500).json({error: 'Internal server error'});
+        if (!res.headersSent) res.status(500).json({ error: 'Internal server error' });
     };
 
     const app = express();
@@ -49,19 +55,21 @@ export function createApp(
             issuerUrl: config.server.publicUrl,
             resourceServerUrl: config.server.resourceUrl,
             resourceName: config.server.name,
-            authorizationOptions: {rateLimit: config.auth.authorizeRateLimit},
-        }),
+            authorizationOptions: { rateLimit: config.auth.authorizeRateLimit }
+        })
     );
 
     app.use(
         '/mcp',
         requireBearerAuth({
             verifier: provider,
-            resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(config.server.resourceUrl),
-        }),
+            resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(
+                config.server.resourceUrl
+            )
+        })
     );
 
-    app.use(express.json({limit: config.server.bodyLimit}));
+    app.use(express.json({ limit: config.server.bodyLimit }));
 
     app.post('/mcp', handleMcp);
     app.get('/mcp', rejectMethod);

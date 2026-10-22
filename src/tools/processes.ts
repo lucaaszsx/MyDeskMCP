@@ -1,6 +1,6 @@
-import {z} from 'zod';
-import {resolveDirectory} from '../lib/paths.js';
-import {defineTool} from './define.js';
+import { z } from 'zod';
+import { resolveDirectory } from '../lib/paths.js';
+import { defineTool } from './define.js';
 
 export const processTools = [
     defineTool({
@@ -12,14 +12,16 @@ export const processTools = [
             cwd: z
                 .string()
                 .optional()
-                .describe("Working directory. Defaults to the server's default directory."),
+                .describe(
+                    "Working directory. Defaults to the server's default directory."
+                )
         },
-        async run({command, cwd}, context) {
+        async run({ command, cwd }, context) {
             const directory = await resolveDirectory(cwd ?? '.', context.cwd);
             const id = context.background.start(command, directory);
 
             return `Started process ${id}`;
-        },
+        }
     }),
 
     defineTool({
@@ -35,11 +37,11 @@ export const processTools = [
                 .min(0)
                 .max(60_000)
                 .default(0)
-                .describe('Maximum time to wait for new output when none is available.'),
+                .describe('Maximum time to wait for new output when none is available.')
         },
-        async run({id, wait_ms: waitMs}, context) {
+        async run({ id, wait_ms: waitMs }, context) {
             return context.background.read(id, waitMs);
-        },
+        }
     }),
 
     defineTool({
@@ -49,11 +51,11 @@ export const processTools = [
         input: {
             id: z.number().int().min(1),
             text: z.string(),
-            close_input: z.boolean().default(false),
+            close_input: z.boolean().default(false)
         },
-        async run({id, text, close_input: closeInput}, context) {
+        async run({ id, text, close_input: closeInput }, context) {
             return context.background.write(id, text, closeInput);
-        },
+        }
     }),
 
     defineTool({
@@ -64,7 +66,7 @@ export const processTools = [
         input: {},
         async run(_args, context) {
             return context.background.list();
-        },
+        }
     }),
 
     defineTool({
@@ -73,10 +75,10 @@ export const processTools = [
             'Send a signal to a background process. If the process already finished, remove it from the list instead.',
         input: {
             id: z.number().int().min(1),
-            signal: z.enum(['SIGTERM', 'SIGINT', 'SIGKILL']).default('SIGTERM'),
+            signal: z.enum(['SIGTERM', 'SIGINT', 'SIGKILL']).default('SIGTERM')
         },
-        async run({id, signal}, context) {
+        async run({ id, signal }, context) {
             return context.background.stop(id, signal);
-        },
-    }),
+        }
+    })
 ];

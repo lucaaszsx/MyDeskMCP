@@ -1,22 +1,22 @@
 import assert from 'node:assert/strict';
-import {readFile, readdir, stat, writeFile} from 'node:fs/promises';
+import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import type {OAuthClientInformationFull} from '@modelcontextprotocol/sdk/shared/auth.js';
-import {nowSeconds} from '../lib/time.js';
-import {createTempDirectory, removeDirectory} from '../testing/temp.js';
-import {AuthStore, type TokenRecord} from './store.js';
+import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth.js';
+import { nowSeconds } from '../lib/time.js';
+import { createTempDirectory, removeDirectory } from '../testing/temp.js';
+import { AuthStore, type TokenRecord } from './store.js';
 
 function client(id: string): OAuthClientInformationFull {
     return {
         client_id: id,
         redirect_uris: ['https://claude.ai/api/mcp/auth_callback'],
-        token_endpoint_auth_method: 'none',
+        token_endpoint_auth_method: 'none'
     };
 }
 
 function token(clientId: string, ttlSeconds: number): TokenRecord {
-    return {clientId, scopes: ['mcp'], expiresAt: nowSeconds() + ttlSeconds};
+    return { clientId, scopes: ['mcp'], expiresAt: nowSeconds() + ttlSeconds };
 }
 
 async function setup(t: test.TestContext): Promise<string> {
@@ -39,7 +39,10 @@ test('persists clients and tokens across reopen', async (t) => {
     const store = await AuthStore.open(file, 10);
 
     await store.saveClient(client('a'));
-    await store.saveTokens(['access-hash', token('a', 60)], ['refresh-hash', token('a', 600)]);
+    await store.saveTokens(
+        ['access-hash', token('a', 60)],
+        ['refresh-hash', token('a', 600)]
+    );
     await store.flush();
 
     const reopened = await AuthStore.open(file, 10);
@@ -64,12 +67,17 @@ test('writes the state file with mode 0600 and leaves no temporary file', async 
 test('reads the legacy state format', async (t) => {
     const file = await setup(t);
     const legacy = {
-        clients: [['legacy', {...client('legacy'), client_id_issued_at: 1, client_secret: 's'}]],
+        clients: [
+            [
+                'legacy',
+                { ...client('legacy'), client_id_issued_at: 1, client_secret: 's' }
+            ]
+        ],
         accessTokens: [['hash', token('legacy', 60)]],
-        refreshTokens: [['refresh', token('legacy', 600)]],
+        refreshTokens: [['refresh', token('legacy', 600)]]
     };
 
-    await writeFile(file, JSON.stringify(legacy), {mode: 0o600});
+    await writeFile(file, JSON.stringify(legacy), { mode: 0o600 });
 
     const store = await AuthStore.open(file, 10);
 
@@ -82,7 +90,7 @@ test('drops expired tokens on load and ignores them on lookup', async (t) => {
     const state = {
         clients: [],
         accessTokens: [['old', token('a', -10)]],
-        refreshTokens: [['old-refresh', token('a', -10)]],
+        refreshTokens: [['old-refresh', token('a', -10)]]
     };
 
     await writeFile(file, JSON.stringify(state));
@@ -112,11 +120,11 @@ test('authorization codes are single use, bound to the client and expire', async
     const record = {
         ...token('a', 60),
         codeChallenge: 'challenge',
-        redirectUri: 'https://claude.ai/api/mcp/auth_callback',
+        redirectUri: 'https://claude.ai/api/mcp/auth_callback'
     };
 
     store.saveCode('code', record);
-    store.saveCode('expired', {...record, expiresAt: nowSeconds() - 1});
+    store.saveCode('expired', { ...record, expiresAt: nowSeconds() - 1 });
 
     assert.equal(store.findCode('code', 'other'), undefined);
     assert.equal(store.findCode('code', 'a')?.codeChallenge, 'challenge');
@@ -144,7 +152,7 @@ test('concurrent saves end with the latest state on disk', async (t) => {
     void Promise.all(['a', 'b', 'c', 'd', 'e'].map((id) => store.saveClient(client(id))));
     await store.flush();
 
-    const saved = JSON.parse(await readFile(file, 'utf8')) as {clients: unknown[]};
+    const saved = JSON.parse(await readFile(file, 'utf8')) as { clients: unknown[] };
 
     assert.equal(saved.clients.length, 5);
 });

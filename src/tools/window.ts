@@ -1,27 +1,27 @@
-import {z} from 'zod';
-import {runCommand} from '../lib/process.js';
-import {defineTool, type ToolContext} from './define.js';
+import { z } from 'zod';
+import { runCommand } from '../lib/process.js';
+import { defineTool, type ToolContext } from './define.js';
 
 const UNKNOWN = '-';
 
 const STATE_ACTIONS: Record<string, [property: string, add: boolean][]> = {
     maximize: [
         ['MAXIMIZED_VERT', true],
-        ['MAXIMIZED_HORZ', true],
+        ['MAXIMIZED_HORZ', true]
     ],
     restore: [
         ['MAXIMIZED_VERT', false],
-        ['MAXIMIZED_HORZ', false],
+        ['MAXIMIZED_HORZ', false]
     ],
     fullscreen: [['FULLSCREEN', true]],
-    unfullscreen: [['FULLSCREEN', false]],
+    unfullscreen: [['FULLSCREEN', false]]
 };
 
 const SIMPLE_ACTIONS: Record<string, string> = {
     activate: 'windowactivate',
     minimize: 'windowminimize',
     close: 'windowquit',
-    kill: 'windowkill',
+    kill: 'windowkill'
 };
 
 function actionArgs(action: string, id: string): string[] {
@@ -33,7 +33,7 @@ function actionArgs(action: string, id: string): string[] {
         'windowstate',
         add ? '--add' : '--remove',
         property,
-        id,
+        id
     ]);
 }
 
@@ -53,11 +53,13 @@ async function xdotool(args: string[], context: ToolContext): Promise<string> {
     const result = await runCommand('xdotool', args, {
         cwd: context.cwd,
         timeoutMs: context.commandTimeoutMs,
-        env: context.environment,
+        env: context.environment
     });
 
     if (result.exitCode !== 0)
-        throw new Error(result.stderr.trim() || `xdotool exited with code ${result.exitCode}.`);
+        throw new Error(
+            result.stderr.trim() || `xdotool exited with code ${result.exitCode}.`
+        );
 
     return result.stdout;
 }
@@ -66,7 +68,7 @@ async function readAttribute(args: string[], context: ToolContext): Promise<stri
     const result = await runCommand('xdotool', args, {
         cwd: context.cwd,
         timeoutMs: context.commandTimeoutMs,
-        env: context.environment,
+        env: context.environment
     });
 
     if (result.exitCode !== 0) return UNKNOWN;
@@ -81,11 +83,13 @@ async function describeWindow(id: string, context: ToolContext): Promise<string>
         readAttribute(['getwindowname', id], context),
         readAttribute(['getwindowpid', id], context),
         readAttribute(['getwindowclassname', id], context),
-        readAttribute(['getwindowgeometry', '--shell', id], context),
+        readAttribute(['getwindowgeometry', '--shell', id], context)
     ]);
     const vars = geometry === UNKNOWN ? {} : shellVars(geometry);
     const size =
-        vars.WIDTH && vars.HEIGHT ? `${vars.WIDTH}x${vars.HEIGHT}@${vars.X},${vars.Y}` : UNKNOWN;
+        vars.WIDTH && vars.HEIGHT
+            ? `${vars.WIDTH}x${vars.HEIGHT}@${vars.X},${vars.Y}`
+            : UNKNOWN;
 
     return `${id}\t${pid}\t${className}\t${size}\t${name === UNKNOWN ? '(untitled)' : name}`;
 }
@@ -101,9 +105,9 @@ export const windowTools = [
             all: z
                 .boolean()
                 .default(false)
-                .describe('Include windows that are not currently visible.'),
+                .describe('Include windows that are not currently visible.')
         },
-        async run({pattern, all}, context) {
+        async run({ pattern, all }, context) {
             const args = ['search'];
 
             if (!all) args.push('--onlyvisible');
@@ -113,7 +117,7 @@ export const windowTools = [
             const result = await runCommand('xdotool', args, {
                 cwd: context.cwd,
                 timeoutMs: context.commandTimeoutMs,
-                env: context.environment,
+                env: context.environment
             });
 
             if (result.exitCode > 1)
@@ -126,7 +130,7 @@ export const windowTools = [
             const rows = await Promise.all(ids.map((id) => describeWindow(id, context)));
 
             return rows.join('\n');
-        },
+        }
     }),
 
     defineTool({
@@ -143,14 +147,14 @@ export const windowTools = [
                 'fullscreen',
                 'unfullscreen',
                 'close',
-                'kill',
-            ]),
+                'kill'
+            ])
         },
-        async run({id, action}, context) {
+        async run({ id, action }, context) {
             await xdotool(actionArgs(action, String(id)), context);
 
             return `Window ${id}: ${action}`;
-        },
+        }
     }),
 
     defineTool({
@@ -162,10 +166,15 @@ export const windowTools = [
             x: z.number().int().optional(),
             y: z.number().int().optional(),
             width: z.number().int().min(1).optional(),
-            height: z.number().int().min(1).optional(),
+            height: z.number().int().min(1).optional()
         },
-        async run({id, x, y, width, height}, context) {
-            if (x === undefined && y === undefined && width === undefined && height === undefined)
+        async run({ id, x, y, width, height }, context) {
+            if (
+                x === undefined &&
+                y === undefined &&
+                width === undefined &&
+                height === undefined
+            )
                 throw new Error('Provide at least one of x, y, width or height.');
 
             const windowId = String(id);
@@ -176,7 +185,7 @@ export const windowTools = [
                     'windowmove',
                     windowId,
                     x === undefined ? 'x' : String(x),
-                    y === undefined ? 'y' : String(y),
+                    y === undefined ? 'y' : String(y)
                 );
 
             if (width !== undefined || height !== undefined) {
@@ -185,19 +194,24 @@ export const windowTools = [
 
                 if (finalWidth === undefined || finalHeight === undefined) {
                     const geometry = shellVars(
-                        await xdotool(['getwindowgeometry', '--shell', windowId], context),
+                        await xdotool(['getwindowgeometry', '--shell', windowId], context)
                     );
 
                     finalWidth ??= Number(geometry.WIDTH);
                     finalHeight ??= Number(geometry.HEIGHT);
                 }
 
-                args.push('windowsize', windowId, String(finalWidth), String(finalHeight));
+                args.push(
+                    'windowsize',
+                    windowId,
+                    String(finalWidth),
+                    String(finalHeight)
+                );
             }
 
             await xdotool(args, context);
 
             return `Window ${id} updated.`;
-        },
-    }),
+        }
+    })
 ];

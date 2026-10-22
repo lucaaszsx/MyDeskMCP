@@ -1,15 +1,15 @@
-import {mkdir, readFile, stat, writeFile} from 'node:fs/promises';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import {z} from 'zod';
-import {pathExists, resolvePath} from '../lib/paths.js';
-import {defineTool, type ToolContext} from './define.js';
+import { z } from 'zod';
+import { pathExists, resolvePath } from '../lib/paths.js';
+import { defineTool, type ToolContext } from './define.js';
 
 const IMAGE_TYPES: Record<string, string> = {
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
     '.gif': 'image/gif',
-    '.webp': 'image/webp',
+    '.webp': 'image/webp'
 };
 
 const BINARY_SAMPLE_BYTES = 8192;
@@ -18,7 +18,7 @@ const editSchema = z.object({
     path: z.string().min(1),
     old_str: z.string().min(1),
     new_str: z.string(),
-    replace_all: z.boolean().default(false),
+    replace_all: z.boolean().default(false)
 });
 
 type Edit = z.infer<typeof editSchema>;
@@ -42,17 +42,18 @@ async function applyEdits(edits: Edit[], context: ToolContext): Promise<string> 
 
             const original = await readFile(target, 'utf8');
 
-            file = {original, content: original, replaced: 0};
+            file = { original, content: original, replaced: 0 };
             files.set(target, file);
         }
 
         const occurrences = file.content.split(edit.old_str).length - 1;
 
-        if (occurrences === 0) throw new Error(`${label}old_str was not found in ${target}.`);
+        if (occurrences === 0)
+            throw new Error(`${label}old_str was not found in ${target}.`);
 
         if (occurrences > 1 && !edit.replace_all)
             throw new Error(
-                `${label}old_str matches ${occurrences} times in ${target}; add more context or set replace_all.`,
+                `${label}old_str matches ${occurrences} times in ${target}; add more context or set replace_all.`
             );
 
         file.content = file.content.split(edit.old_str).join(edit.new_str);
@@ -73,7 +74,8 @@ async function applyEdits(edits: Edit[], context: ToolContext): Promise<string> 
         throw error;
     }
 
-    for (const target of files.keys()) context.fileVersions.remember(target, await stat(target));
+    for (const target of files.keys())
+        context.fileVersions.remember(target, await stat(target));
 
     return [...files]
         .map(([target, file]) => `Replaced ${file.replaced} occurrence(s) in ${target}`)
@@ -89,15 +91,15 @@ export const fileTools = [
         input: {
             path: z.string().min(1),
             start_line: z.number().int().min(1).optional(),
-            end_line: z.number().int().min(1).optional(),
+            end_line: z.number().int().min(1).optional()
         },
-        async run({path: filePath, start_line: startLine, end_line: endLine}, context) {
+        async run({ path: filePath, start_line: startLine, end_line: endLine }, context) {
             const source = resolvePath(filePath, context.cwd);
             const stats = await stat(source);
 
             if (stats.size > context.maxReadBytes)
                 throw new Error(
-                    `File is larger than ${context.maxReadBytes} bytes. Read it in parts with bash.`,
+                    `File is larger than ${context.maxReadBytes} bytes. Read it in parts with bash.`
                 );
 
             const buffer = await readFile(source);
@@ -115,10 +117,11 @@ export const fileTools = [
             const start = startLine ?? 1;
             const end = endLine ?? lines.length;
 
-            if (start > end) throw new Error('start_line must not be greater than end_line.');
+            if (start > end)
+                throw new Error('start_line must not be greater than end_line.');
 
             return lines.slice(start - 1, end).join('\n');
-        },
+        }
     }),
 
     defineTool({
@@ -126,23 +129,26 @@ export const fileTools = [
         description: 'Read a png, jpg, gif or webp image so it can be viewed.',
         readOnly: true,
         input: {
-            path: z.string().min(1),
+            path: z.string().min(1)
         },
-        async run({path: filePath}, context) {
+        async run({ path: filePath }, context) {
             const source = resolvePath(filePath, context.cwd);
             const mimeType = IMAGE_TYPES[path.extname(source).toLowerCase()];
 
-            if (!mimeType) throw new Error('Unsupported image type. Use png, jpg, gif or webp.');
+            if (!mimeType)
+                throw new Error('Unsupported image type. Use png, jpg, gif or webp.');
 
-            const {size} = await stat(source);
+            const { size } = await stat(source);
 
             if (size > context.maxImageBytes)
                 throw new Error(`Image is larger than ${context.maxImageBytes} bytes.`);
 
             return {
-                content: [{type: 'image', data: await readFile(source, 'base64'), mimeType}],
+                content: [
+                    { type: 'image', data: await readFile(source, 'base64'), mimeType }
+                ]
             };
-        },
+        }
     }),
 
     defineTool({
@@ -151,20 +157,20 @@ export const fileTools = [
             'Create or overwrite a UTF-8 text file, creating missing parent directories. An existing file must have been read with read_file and not changed since, otherwise the write is refused.',
         input: {
             path: z.string().min(1),
-            content: z.string(),
+            content: z.string()
         },
-        async run({path: filePath, content}, context) {
+        async run({ path: filePath, content }, context) {
             const destination = resolvePath(filePath, context.cwd);
 
             if (await pathExists(destination))
                 await context.fileVersions.assertCurrent(destination);
 
-            await mkdir(path.dirname(destination), {recursive: true});
+            await mkdir(path.dirname(destination), { recursive: true });
             await writeFile(destination, content, 'utf8');
             context.fileVersions.remember(destination, await stat(destination));
 
             return `File written: ${destination}`;
-        },
+        }
     }),
 
     defineTool({
@@ -174,7 +180,7 @@ export const fileTools = [
         input: editSchema.shape,
         async run(edit, context) {
             return applyEdits([edit], context);
-        },
+        }
     }),
 
     defineTool({
@@ -182,10 +188,10 @@ export const fileTools = [
         description:
             'Apply several exact string replacements, in order, across one or more files. Later edits see the result of earlier ones. Nothing is written unless every edit applies, and a failed write restores the files already written. Each file must have been read with read_file and not changed since.',
         input: {
-            edits: z.array(editSchema).min(1),
+            edits: z.array(editSchema).min(1)
         },
-        async run({edits}, context) {
+        async run({ edits }, context) {
             return applyEdits(edits, context);
-        },
-    }),
+        }
+    })
 ];

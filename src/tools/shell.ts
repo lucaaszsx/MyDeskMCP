@@ -1,7 +1,7 @@
-import {z} from 'zod';
-import {resolveDirectory} from '../lib/paths.js';
-import {executeCommand} from '../lib/process.js';
-import {defineTool} from './define.js';
+import { z } from 'zod';
+import { resolveDirectory } from '../lib/paths.js';
+import { executeCommand } from '../lib/process.js';
+import { defineTool } from './define.js';
 
 export const shellTools = [
     defineTool({
@@ -13,22 +13,27 @@ export const shellTools = [
             cwd: z
                 .string()
                 .optional()
-                .describe("Working directory. Defaults to the server's default directory."),
+                .describe(
+                    "Working directory. Defaults to the server's default directory."
+                ),
             timeout: z
                 .number()
                 .int()
                 .min(1000)
                 .optional()
-                .describe('Timeout in milliseconds, capped by the server limit.'),
+                .describe('Timeout in milliseconds, capped by the server limit.')
         },
-        async run({command, cwd, timeout}, context) {
+        async run({ command, cwd, timeout }, context) {
             const output = await executeCommand('bash', ['-lc', command], {
                 cwd: await resolveDirectory(cwd ?? '.', context.cwd),
-                timeoutMs: Math.min(timeout ?? context.commandTimeoutMs, context.commandTimeoutMs),
-                env: context.environment,
+                timeoutMs: Math.min(
+                    timeout ?? context.commandTimeoutMs,
+                    context.commandTimeoutMs
+                ),
+                env: context.environment
             });
 
             return output || '(No output)';
-        },
-    }),
+        }
+    })
 ];

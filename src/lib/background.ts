@@ -1,6 +1,6 @@
-import type {Writable} from 'node:stream';
-import type {Config} from '../config.js';
-import {killProcessGroup, spawnCommand} from './process.js';
+import type { Writable } from 'node:stream';
+import type { Config } from '../config.js';
+import { killProcessGroup, spawnCommand } from './process.js';
 
 interface Entry {
     id: number;
@@ -25,9 +25,16 @@ export class BackgroundProcesses {
 
     start(command: string, cwd: string): number {
         if (this.entries.size >= this.limits.maxBackgroundProcesses)
-            throw new Error('Too many tracked processes. Remove finished ones with process_stop.');
+            throw new Error(
+                'Too many tracked processes. Remove finished ones with process_stop.'
+            );
 
-        const child = spawnCommand('bash', ['-lc', command], cwd, this.limits.environment);
+        const child = spawnCommand(
+            'bash',
+            ['-lc', command],
+            cwd,
+            this.limits.environment
+        );
         const entry: Entry = {
             id: this.nextId++,
             command,
@@ -40,13 +47,17 @@ export class BackgroundProcesses {
             exited: false,
             exitCode: null,
             signal: null,
-            waiters: new Set(),
+            waiters: new Set()
         };
 
         this.entries.set(entry.id, entry);
 
-        child.stdout.setEncoding('utf8').on('data', (chunk: string) => this.append(entry, chunk));
-        child.stderr.setEncoding('utf8').on('data', (chunk: string) => this.append(entry, chunk));
+        child.stdout
+            .setEncoding('utf8')
+            .on('data', (chunk: string) => this.append(entry, chunk));
+        child.stderr
+            .setEncoding('utf8')
+            .on('data', (chunk: string) => this.append(entry, chunk));
         child.once('error', (error) => {
             this.append(entry, `${error.message}\n`);
             this.finish(entry, 127, null);
@@ -70,7 +81,7 @@ export class BackgroundProcesses {
         return [
             lost > 0 ? `[... ${lost} characters lost ...]` : '',
             text,
-            `[${this.describe(entry)}]`,
+            `[${this.describe(entry)}]`
         ]
             .filter(Boolean)
             .join('\n');
@@ -141,7 +152,11 @@ export class BackgroundProcesses {
         this.wake(entry);
     }
 
-    private finish(entry: Entry, code: number | null, signal: NodeJS.Signals | null): void {
+    private finish(
+        entry: Entry,
+        code: number | null,
+        signal: NodeJS.Signals | null
+    ): void {
         if (entry.exited) return;
 
         entry.exited = true;

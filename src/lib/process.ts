@@ -1,4 +1,4 @@
-import {spawn, type ChildProcessWithoutNullStreams} from 'node:child_process';
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import os from 'node:os';
 
 const MAX_CAPTURE_CHARS = 10_000_000;
@@ -24,9 +24,9 @@ export function spawnCommand(
     command: string,
     args: string[],
     cwd: string,
-    env: NodeJS.ProcessEnv,
+    env: NodeJS.ProcessEnv
 ): ChildProcessWithoutNullStreams {
-    const child = spawn(command, args, {cwd, env, detached: true});
+    const child = spawn(command, args, { cwd, env, detached: true });
 
     child.stdin.on('error', () => undefined);
 
@@ -35,7 +35,7 @@ export function spawnCommand(
 
 export function killProcessGroup(
     pid: number | undefined,
-    signal: NodeJS.Signals = 'SIGKILL',
+    signal: NodeJS.Signals = 'SIGKILL'
 ): boolean {
     if (pid === undefined) return false;
 
@@ -54,7 +54,7 @@ export function formatOutput(result: Pick<CommandResult, 'stdout' | 'stderr'>): 
 export function runCommand(
     command: string,
     args: string[],
-    options: CommandOptions,
+    options: CommandOptions
 ): Promise<CommandResult> {
     return new Promise((resolve, reject) => {
         const child = spawnCommand(command, args, options.cwd, options.env);
@@ -93,13 +93,17 @@ export function runCommand(
             clearTimeout(timer);
 
             if (timedOut) {
-                const output = formatOutput({stdout, stderr});
-                reject(new Error(`${output}\n[timed out after ${options.timeoutMs} ms]`.trim()));
+                const output = formatOutput({ stdout, stderr });
+                reject(
+                    new Error(
+                        `${output}\n[timed out after ${options.timeoutMs} ms]`.trim()
+                    )
+                );
                 return;
             }
 
             const signalNumber = signal ? os.constants.signals[signal] : 0;
-            resolve({stdout, stderr, exitCode: code ?? 128 + signalNumber});
+            resolve({ stdout, stderr, exitCode: code ?? 128 + signalNumber });
         });
     });
 }
@@ -107,12 +111,13 @@ export function runCommand(
 export async function executeCommand(
     command: string,
     args: string[],
-    options: CommandOptions,
+    options: CommandOptions
 ): Promise<string> {
     const result = await runCommand(command, args, options);
     const output = formatOutput(result);
 
-    if (result.exitCode !== 0) throw new Error(`${output}\n[exit code ${result.exitCode}]`.trim());
+    if (result.exitCode !== 0)
+        throw new Error(`${output}\n[exit code ${result.exitCode}]`.trim());
 
     return output;
 }

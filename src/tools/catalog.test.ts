@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {startToolClient} from '../testing/tool-client.js';
+import { startToolClient } from '../testing/tool-client.js';
 
 test('exposes the full tool catalog', async (t) => {
     const tools = await startToolClient(t);
@@ -22,6 +22,6 @@ test('exposes the full tool catalog', async (t) => {
         'window_action',
         'window_list',
         'window_move_resize',
-        'write_file',
+        'write_file'
     ]);
 });

@@ -1,31 +1,31 @@
-import type {OAuthRegisteredClientsStore} from '@modelcontextprotocol/sdk/server/auth/clients.js';
+import type { OAuthRegisteredClientsStore } from '@modelcontextprotocol/sdk/server/auth/clients.js';
 import {
     InvalidClientMetadataError,
     InvalidGrantError,
-    InvalidTokenError,
+    InvalidTokenError
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import type {
     AuthorizationParams,
-    OAuthServerProvider,
+    OAuthServerProvider
 } from '@modelcontextprotocol/sdk/server/auth/provider.js';
-import type {AuthInfo} from '@modelcontextprotocol/sdk/server/auth/types.js';
+import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import type {
     OAuthClientInformationFull,
-    OAuthTokens,
+    OAuthTokens
 } from '@modelcontextprotocol/sdk/shared/auth.js';
-import type {Response} from 'express';
-import type {Config} from '../config.js';
-import {digest, randomToken, safeEqual} from '../lib/crypto.js';
-import {nowSeconds} from '../lib/time.js';
-import {renderLoginPage} from './login-page.js';
-import type {AuthStore} from './store.js';
+import type { Response } from 'express';
+import type { Config } from '../config.js';
+import { digest, randomToken, safeEqual } from '../lib/crypto.js';
+import { nowSeconds } from '../lib/time.js';
+import { renderLoginPage } from './login-page.js';
+import type { AuthStore } from './store.js';
 
 export class LocalOAuthProvider implements OAuthServerProvider {
     readonly clientsStore: OAuthRegisteredClientsStore;
 
     constructor(
         private readonly config: Config['auth'],
-        private readonly store: AuthStore,
+        private readonly store: AuthStore
     ) {
         this.clientsStore = {
             getClient: (clientId) => store.getClient(clientId),
@@ -33,22 +33,25 @@ export class LocalOAuthProvider implements OAuthServerProvider {
                 const client = metadata as OAuthClientInformationFull;
                 const uris = client.redirect_uris;
 
-                if (uris.length === 0 || !uris.every((uri) => this.isAllowedRedirect(uri)))
+                if (
+                    uris.length === 0 ||
+                    !uris.every((uri) => this.isAllowedRedirect(uri))
+                )
                     throw new InvalidClientMetadataError(
-                        'redirect_uris must be Claude callback URLs',
+                        'redirect_uris must be Claude callback URLs'
                     );
 
                 await store.saveClient(client);
 
                 return client;
-            },
+            }
         };
     }
 
     async authorize(
         client: OAuthClientInformationFull,
         params: AuthorizationParams,
-        res: Response,
+        res: Response
     ): Promise<void> {
         const fields = {
             client_id: client.client_id,
@@ -58,14 +61,14 @@ export class LocalOAuthProvider implements OAuthServerProvider {
             code_challenge_method: 'S256',
             state: params.state,
             scope: params.scopes?.join(' '),
-            resource: params.resource?.href,
+            resource: params.resource?.href
         };
 
         res.set({
             'Cache-Control': 'no-store',
             'X-Frame-Options': 'DENY',
             'Content-Security-Policy':
-                "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'",
+                "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'"
         });
 
         if (res.req.method !== 'POST') {
@@ -75,7 +78,10 @@ export class LocalOAuthProvider implements OAuthServerProvider {
 
         const submitted: unknown = res.req.body?.password;
 
-        if (typeof submitted !== 'string' || !safeEqual(submitted, this.config.password)) {
+        if (
+            typeof submitted !== 'string' ||
+            !safeEqual(submitted, this.config.password)
+        ) {
             res.status(401).type('html').send(renderLoginPage(fields, 'Wrong password.'));
             return;
         }
@@ -87,7 +93,7 @@ export class LocalOAuthProvider implements OAuthServerProvider {
             codeChallenge: params.codeChallenge,
             redirectUri: params.redirectUri,
             scopes: params.scopes ?? [],
-            expiresAt: nowSeconds() + this.config.codeTtlSeconds,
+            expiresAt: nowSeconds() + this.config.codeTtlSeconds
         });
 
         const target = new URL(params.redirectUri);
@@ -101,7 +107,7 @@ export class LocalOAuthProvider implements OAuthServerProvider {
 
     async challengeForAuthorizationCode(
         client: OAuthClientInformationFull,
-        authorizationCode: string,
+        authorizationCode: string
     ): Promise<string> {
         const record = this.store.findCode(authorizationCode, client.client_id);
 
@@ -114,7 +120,7 @@ export class LocalOAuthProvider implements OAuthServerProvider {
         client: OAuthClientInformationFull,
         authorizationCode: string,
         _codeVerifier?: string,
-        redirectUri?: string,
+        redirectUri?: string
     ): Promise<OAuthTokens> {
         const record = this.store.takeCode(authorizationCode, client.client_id);
 
@@ -128,9 +134,12 @@ export class LocalOAuthProvider implements OAuthServerProvider {
 
     async exchangeRefreshToken(
         client: OAuthClientInformationFull,
-        refreshToken: string,
+        refreshToken: string
     ): Promise<OAuthTokens> {
-        const record = this.store.takeRefreshToken(digest(refreshToken), client.client_id);
+        const record = this.store.takeRefreshToken(
+            digest(refreshToken),
+            client.client_id
+        );
 
         if (!record) throw new InvalidGrantError('Invalid or expired refresh token');
 
@@ -146,7 +155,7 @@ export class LocalOAuthProvider implements OAuthServerProvider {
             token,
             clientId: record.clientId,
             scopes: record.scopes,
-            expiresAt: record.expiresAt,
+            expiresAt: record.expiresAt
         };
     }
 
@@ -162,12 +171,12 @@ export class LocalOAuthProvider implements OAuthServerProvider {
         await this.store.saveTokens(
             [
                 digest(accessToken),
-                {clientId, scopes, expiresAt: now + this.config.accessTtlSeconds},
+                { clientId, scopes, expiresAt: now + this.config.accessTtlSeconds }
             ],
             [
                 digest(refreshToken),
-                {clientId, scopes, expiresAt: now + this.config.refreshTtlSeconds},
-            ],
+                { clientId, scopes, expiresAt: now + this.config.refreshTtlSeconds }
+            ]
         );
 
         return {
@@ -175,7 +184,7 @@ export class LocalOAuthProvider implements OAuthServerProvider {
             token_type: 'Bearer',
             expires_in: this.config.accessTtlSeconds,
             refresh_token: refreshToken,
-            scope: scopes.join(' '),
+            scope: scopes.join(' ')
         };
     }
 }
