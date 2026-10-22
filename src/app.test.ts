@@ -251,7 +251,7 @@ test('completes the OAuth flow, serves tools and rotates refresh tokens', async 
     const output = await client.callTool({name: 'bash', arguments: {command: 'pwd'}});
     const text = (output.content as {type: string; text: string}[])[0]?.text ?? '';
 
-    assert.equal(tools.length, 14);
+    assert.equal(tools.length, 17);
     assert.equal(text.trim(), directory);
     await client.close();
 
@@ -281,7 +281,7 @@ test('completes the OAuth flow, serves tools and rotates refresh tokens', async 
 
     const second = await connect(next.access_token);
 
-    assert.equal((await second.listTools()).tools.length, 14);
+    assert.equal((await second.listTools()).tools.length, 17);
     await second.close();
 
     const details = await stat(config.auth.stateFile);

@@ -19,6 +19,9 @@ test('exposes the full tool catalog', async (t) => {
         'read_file',
         'read_image',
         'search_text',
+        'window_action',
+        'window_list',
+        'window_move_resize',
         'write_file',
     ]);
 });

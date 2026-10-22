@@ -5,6 +5,7 @@ import {filesystemTools} from './filesystem.js';
 import {processTools} from './processes.js';
 import {searchTools} from './search.js';
 import {shellTools} from './shell.js';
+import {windowTools} from './window.js';
 
 const tools: Tool[] = [
     ...shellTools,
@@ -12,6 +13,7 @@ const tools: Tool[] = [
     ...fileTools,
     ...filesystemTools,
     ...searchTools,
+    ...windowTools,
 ];
 
 export function registerTools(server: McpServer, context: ToolContext): void {

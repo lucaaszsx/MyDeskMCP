@@ -7,6 +7,7 @@ A remote [MCP](https://modelcontextprotocol.io) server that gives a client such 
 ## Requirements
 
 - Linux or macOS with `bash` and [`ripgrep`](https://github.com/BurntSushi/ripgrep) (`rg`)
+- [`xdotool`](https://github.com/jordansissel/xdotool), for the window tools. X11 or XWayland with a window manager that supports EWMH; native Wayland windows are not visible to it
 - Node.js 24 or newer
 - pnpm
 - An HTTPS tunnel that forwards a public URL to the local port (see below)
@@ -82,8 +83,13 @@ To revoke every session, stop the server, delete the state file and start it aga
 | `move_path` | Move or rename a path |
 | `find_files` | Find files by glob |
 | `search_text` | Search file contents with ripgrep: content, file list or counts, context lines, multiline, paging |
+| `window_list` | List windows: id, pid, class, size@position and title, with an optional name/class/role filter |
+| `window_action` | Activate, minimize, maximize, restore, fullscreen, unfullscreen, close or kill a window |
+| `window_move_resize` | Move and/or resize a window, changing only the given fields |
 
 Child processes do not inherit `MCP_*` variables, and git runs without prompts or editors. Use `bash` for everything else, such as git, directory listings, deleting files and system information.
+
+The window tools shell out to `xdotool` and depend on the window manager's EWMH support; behavior (and whether a window has a pid or class at all) varies by window manager and desktop environment. See `docs/PLANNING.md` for details.
 
 ## Development
 
