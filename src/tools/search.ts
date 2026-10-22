@@ -16,11 +16,14 @@ export const searchTools = [
     defineTool({
         name: 'find_files',
         description:
-            'Find files and directories by glob pattern (for example **/*.ts) under a directory. Common dependency and build directories are skipped and the number of results is limited.',
+            'Find files and directories by name with a glob pattern (for example **/*.ts) under a directory. Common dependency and build directories are skipped and the number of results is limited.',
         readOnly: true,
         input: {
-            pattern: z.string().min(1),
-            path: z.string().default('.')
+            pattern: z.string().min(1).describe('Glob pattern, for example **/*.ts.'),
+            path: z
+                .string()
+                .default('.')
+                .describe('Directory to search. Defaults to the default directory.')
         },
         async run({ pattern, path: searchPath }, context) {
             const directory = await resolveDirectory(searchPath, context.cwd);
@@ -51,8 +54,16 @@ export const searchTools = [
             'Search file contents with ripgrep. Matches literally by default; set regex for regular expressions. Modes: content (path:line:text, context lines as path-line-text), files (matching paths) and count (path:matching lines). Respects .gitignore and skips dependency and build directories; use bash to search ignored files. Results are sorted by path and paged by output line with offset and max_results.',
         readOnly: true,
         input: {
-            query: z.string().min(1),
-            path: z.string().default('.'),
+            query: z
+                .string()
+                .min(1)
+                .describe('Text to look for, or a regular expression when regex is set.'),
+            path: z
+                .string()
+                .default('.')
+                .describe(
+                    'Directory or file to search. Defaults to the default directory.'
+                ),
             mode: z.enum(['content', 'files', 'count']).default('content'),
             regex: z.boolean().default(false),
             ignore_case: z.boolean().default(false),

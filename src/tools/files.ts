@@ -2,7 +2,7 @@ import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import { pathExists, resolvePath } from '../lib/paths.js';
-import { defineTool, type ToolContext } from './define.js';
+import { defineTool, pathParam, type ToolContext } from './define.js';
 
 const IMAGE_TYPES: Record<string, string> = {
     '.png': 'image/png',
@@ -15,9 +15,9 @@ const IMAGE_TYPES: Record<string, string> = {
 const BINARY_SAMPLE_BYTES = 8192;
 
 const editSchema = z.object({
-    path: z.string().min(1),
-    old_str: z.string().min(1),
-    new_str: z.string(),
+    path: pathParam,
+    old_str: z.string().min(1).describe('Exact text to replace, including whitespace.'),
+    new_str: z.string().describe('Replacement text.'),
     replace_all: z.boolean().default(false)
 });
 
@@ -86,10 +86,10 @@ export const fileTools = [
     defineTool({
         name: 'read_file',
         description:
-            'Read a UTF-8 text file, optionally limited to a 1-based inclusive line range. Relative paths resolve against the default directory; `~` is the home directory. Binary and very large files are refused. A file must be read before it can be overwritten or edited.',
+            'Read a UTF-8 text file, optionally limited to a 1-based inclusive line range. Binary and oversized files are refused.',
         readOnly: true,
         input: {
-            path: z.string().min(1),
+            path: pathParam,
             start_line: z.number().int().min(1).optional(),
             end_line: z.number().int().min(1).optional()
         },
@@ -126,10 +126,11 @@ export const fileTools = [
 
     defineTool({
         name: 'read_image',
-        description: 'Read a png, jpg, gif or webp image so it can be viewed.',
+        description:
+            'Read a png, jpg, gif or webp image, such as a screenshot or a diagram, so it can be viewed.',
         readOnly: true,
         input: {
-            path: z.string().min(1)
+            path: pathParam
         },
         async run({ path: filePath }, context) {
             const source = resolvePath(filePath, context.cwd);
@@ -154,10 +155,10 @@ export const fileTools = [
     defineTool({
         name: 'write_file',
         description:
-            'Create or overwrite a UTF-8 text file, creating missing parent directories. An existing file must have been read with read_file and not changed since, otherwise the write is refused.',
+            'Create a file or fully replace one, creating missing parent directories. An existing file must have been read with read_file and not changed since, otherwise the write is refused.',
         input: {
-            path: z.string().min(1),
-            content: z.string()
+            path: pathParam,
+            content: z.string().describe('Complete file content.')
         },
         async run({ path: filePath, content }, context) {
             const destination = resolvePath(filePath, context.cwd);
@@ -176,7 +177,7 @@ export const fileTools = [
     defineTool({
         name: 'edit_file',
         description:
-            'Replace an exact string in a file. Fails if old_str is missing or ambiguous unless replace_all is true. The file must have been read with read_file and not changed since.',
+            'Replace an exact string in an existing file. Fails if old_str is missing or ambiguous unless replace_all is true. The file must have been read with read_file and not changed since.',
         input: editSchema.shape,
         async run(edit, context) {
             return applyEdits([edit], context);

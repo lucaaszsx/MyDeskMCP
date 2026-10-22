@@ -7,7 +7,7 @@ export const shellTools = [
     defineTool({
         name: 'bash',
         description:
-            'Execute a command in a Bash login shell on the host machine and return its combined output. Fails with the output and exit code when the command exits non-zero.',
+            'Run a command in a Bash login shell on the host computer and return its combined output. Prefer read_file, edit_file, find_files and search_text for file work. Stdin is closed and the command is killed at the server time limit; start anything long-running or interactive with process_start instead. Fails with the output and exit code when the command exits non-zero.',
         input: {
             command: z.string().min(1),
             cwd: z

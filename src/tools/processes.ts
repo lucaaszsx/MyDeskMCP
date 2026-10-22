@@ -2,11 +2,13 @@ import { z } from 'zod';
 import { resolveDirectory } from '../lib/paths.js';
 import { defineTool } from './define.js';
 
+const processIdParam = z.number().int().min(1).describe('Id returned by process_start.');
+
 export const processTools = [
     defineTool({
         name: 'process_start',
         description:
-            'Start a command in the background and return its process id. Its input stays open: use process_write to send text, process_read to collect output and process_stop to end it.',
+            'Start a long-running or interactive command in the background (dev server, watcher, REPL, long build) and return its process id. Its input stays open: use process_read to collect output, process_write to send text and process_stop to end it.',
         input: {
             command: z.string().min(1),
             cwd: z
@@ -27,10 +29,10 @@ export const processTools = [
     defineTool({
         name: 'process_read',
         description:
-            'Return the output a background process produced since the last read, followed by its status. Optionally waits for new output.',
+            'Return the output a background process produced since the last read, followed by its status. Set wait_ms to wait for new output instead of polling.',
         readOnly: true,
         input: {
-            id: z.number().int().min(1),
+            id: processIdParam,
             wait_ms: z
                 .number()
                 .int()
@@ -47,9 +49,9 @@ export const processTools = [
     defineTool({
         name: 'process_write',
         description:
-            'Write text to the standard input of a background process. Set close_input to send end-of-input after the text.',
+            'Write text to the standard input of a background process, for example to answer a prompt or feed a REPL. No newline is added: end the text with \\n when the program expects a line. Set close_input to send end-of-input after the text.',
         input: {
-            id: z.number().int().min(1),
+            id: processIdParam,
             text: z.string(),
             close_input: z.boolean().default(false)
         },
@@ -61,7 +63,7 @@ export const processTools = [
     defineTool({
         name: 'process_list',
         description:
-            'List tracked background processes. Each line is: id, status, elapsed time, command.',
+            'List the background processes started with process_start, including finished ones not yet removed. Each line is: id, status, elapsed time, command.',
         readOnly: true,
         input: {},
         async run(_args, context) {
@@ -72,9 +74,9 @@ export const processTools = [
     defineTool({
         name: 'process_stop',
         description:
-            'Send a signal to a background process. If the process already finished, remove it from the list instead.',
+            'Send a signal (SIGTERM by default) to a background process started with process_start. If the process already finished, remove it from the list instead.',
         input: {
-            id: z.number().int().min(1),
+            id: processIdParam,
             signal: z.enum(['SIGTERM', 'SIGINT', 'SIGKILL']).default('SIGTERM')
         },
         async run({ id, signal }, context) {

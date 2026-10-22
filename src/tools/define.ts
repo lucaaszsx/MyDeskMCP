@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import type { z } from 'zod';
+import { z } from 'zod';
 import type { Config } from '../config.js';
 import type { BackgroundProcesses } from '../lib/background.js';
 import type { FileVersions } from '../lib/file-versions.js';
@@ -13,6 +13,11 @@ export type ToolContext = Config['tools'] & {
 export interface Tool {
     register(server: McpServer, context: ToolContext): void;
 }
+
+export const pathParam = z
+    .string()
+    .min(1)
+    .describe('Absolute path, ~ for home, or relative to the default directory.');
 
 interface ToolDefinition<Shape extends z.ZodRawShape> {
     name: string;

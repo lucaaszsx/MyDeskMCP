@@ -4,6 +4,8 @@ import { defineTool, type ToolContext } from './define.js';
 
 const UNKNOWN = '-';
 
+const windowIdParam = z.number().int().min(1).describe('Window id from window_list.');
+
 const STATE_ACTIONS: Record<string, [property: string, add: boolean][]> = {
     maximize: [
         ['MAXIMIZED_VERT', true],
@@ -98,7 +100,7 @@ export const windowTools = [
     defineTool({
         name: 'window_list',
         description:
-            'List windows, one per line, as id, pid, class, size@position and title. pattern matches name, class, classname and role; omit to list every window. Visible windows only unless all is set.',
+            'List desktop windows, one per line, as id, pid, class, size@position and title. Start here to get the id the other window tools need. pattern matches name, class, classname and role; omit to list every window. Only visible windows are listed unless all is set.',
         readOnly: true,
         input: {
             pattern: z.string().optional(),
@@ -138,7 +140,7 @@ export const windowTools = [
         description:
             "Change a window's state: activate (focus, raise and switch desktop), minimize, maximize, restore, fullscreen, unfullscreen, close (ask the app to close) or kill (force).",
         input: {
-            id: z.number().int().min(1),
+            id: windowIdParam,
             action: z.enum([
                 'activate',
                 'minimize',
@@ -162,7 +164,7 @@ export const windowTools = [
         description:
             'Move and/or resize a window. Only the given fields change; a resize with just one dimension keeps the other at its current value.',
         input: {
-            id: z.number().int().min(1),
+            id: windowIdParam,
             x: z.number().int().optional(),
             y: z.number().int().optional(),
             width: z.number().int().min(1).optional(),

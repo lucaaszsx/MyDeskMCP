@@ -19,6 +19,8 @@ const environmentSchema = z.object({
 export interface Config {
     server: {
         name: string;
+        title: string;
+        description: string;
         version: string;
         host: string;
         port: number;
@@ -76,6 +78,9 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Config
     return {
         server: {
             name: 'local-mcp',
+            title: 'MyDeskMCP',
+            description:
+                "Shell, files, search, background processes and desktop windows on the user's own computer.",
             version,
             host: env.MCP_HOST,
             port: env.MCP_PORT,

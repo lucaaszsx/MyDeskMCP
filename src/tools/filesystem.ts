@@ -2,7 +2,7 @@ import { cp, mkdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import { pathExists, resolvePath } from '../lib/paths.js';
-import { defineTool } from './define.js';
+import { defineTool, pathParam } from './define.js';
 
 export const filesystemTools = [
     defineTool({
@@ -10,8 +10,8 @@ export const filesystemTools = [
         description:
             'Move or rename a file or directory, creating missing parent directories. Fails if the destination exists unless overwrite is true.',
         input: {
-            from: z.string().min(1),
-            to: z.string().min(1),
+            from: pathParam,
+            to: pathParam,
             overwrite: z.boolean().default(false)
         },
         async run({ from, to, overwrite }, context) {
