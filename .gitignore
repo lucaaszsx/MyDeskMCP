@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.oauth-state.json
+.oauth-state.json.tmp
+*.log
+deploy/release
+*.tsbuildinfo
+.DS_Store
+.idea
+.vscode
+docs/
